@@ -1,0 +1,1668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fdfcfc">
+<title>AZNUR | Bangladesh Water Intelligence</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://tiles.openfreemap.org">
+<link rel="preconnect" href="https://server.arcgisonline.com">
+<link href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<script>try{var _t=localStorage.getItem('aznur-water-theme');if(_t==='light'||_t==='dark')document.documentElement.setAttribute('data-theme',_t)}catch(e){}</script>
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#fdfcfc;--fg:#201d1d;--dim:#646262;--faint:#9a9898;
+  --line:#dcd9d9;--accent:#b45309;--accent-h:#92400e;--accent-fg:#fdfcfc;
+  --active:#f4f0ef;--surface:#faf8f7;
+  --good:#10b981;--warn:#b45309;--bad:#b91c1c;
+  --font:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius:4px;--rl:6px;
+  --sidebar:238px;
+  --shadow:0 1px 2px rgba(15,15,20,.04);
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#161313;--fg:#f1eeee;--dim:#9a9898;--faint:#646262;
+  --line:#302c2c;--accent:#f59e0b;--accent-h:#d97706;--accent-fg:#161313;
+  --active:#211d1d;--surface:#1c1818;
+  --good:#10b981;--warn:#f59e0b;--bad:#f87171;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#161313;--fg:#f1eeee;--dim:#9a9898;--faint:#646262;
+    --line:#302c2c;--accent:#f59e0b;--accent-h:#d97706;--accent-fg:#161313;
+    --active:#211d1d;--surface:#1c1818;
+    --good:#10b981;--warn:#f59e0b;--bad:#f87171;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:13.5px/1.55 var(--font);letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.48;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.hide,.hidden{display:none!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* ---------- App shell ---------- */
+.app{min-height:100vh}
+.topbar{
+  height:60px;position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;
+  padding:0 20px;border-bottom:1px solid var(--line);background:var(--bg);
+}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--fg);font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.brand-mark{width:26px;height:26px;border-radius:var(--radius);display:grid;place-items:center;background:var(--active);color:var(--accent);border:1px solid var(--line)}
+.brand-mark svg{width:15px;height:15px}
+.brand .slash{color:var(--faint);font-weight:500;margin:0 1px}
+
+.top-search{
+  height:32px;display:flex;align-items:center;gap:8px;
+  flex:1;max-width:400px;padding:0 10px;
+  border:1px solid var(--line);background:var(--bg);
+  border-radius:var(--radius);color:var(--faint);font-size:12px;
+}
+.top-search input{border:0;outline:0;background:transparent;min-width:0;width:100%;color:var(--fg);font-family:var(--font);font-size:12px}
+.search-key{font-size:10px;border:1px solid var(--line);padding:1px 5px;border-radius:3px;background:var(--active);color:var(--dim);font-family:var(--font);letter-spacing:.04em}
+
+.top-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.small-caps{font-family:var(--font);background:var(--active);border:1px solid var(--line);border-radius:3px;padding:2px 6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.select{
+  height:28px;padding:2px 8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);
+  border-radius:var(--radius);font-size:11px;font-family:var(--font);min-width:84px;
+}
+.select:hover{border-color:var(--accent)}
+
+/* ---------- Pills & dots ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 9px;background:var(--active);border:1px solid var(--line);
+  border-radius:999px;font-size:11px;color:var(--dim);white-space:nowrap;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--faint);display:inline-block;flex-shrink:0}
+.dot.good{background:var(--good)}
+.dot.warn{background:var(--accent)}
+.dot.bad{background:var(--bad)}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:30px;padding:4px 10px;
+  font:inherit;font-size:11.5px;font-weight:600;
+  background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-radius:var(--radius);
+  transition:border-color .15s,background .15s;text-decoration:none;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-style:dashed}
+.btn.danger:hover{border-color:var(--bad)}
+.btn.small{min-height:26px;padding:3px 8px;font-size:10.5px;border-radius:3px}
+.btn.icon-btn{width:30px;min-height:30px;padding:0;font-size:13px}
+.btn.wide{width:100%}
+
+.mini-link{border:0;background:transparent;padding:0;color:var(--accent);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+.mini-link:hover{color:var(--accent-h);text-decoration:underline;text-underline-offset:2px}
+
+/* ---------- Layout ---------- */
+.layout{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:calc(100vh - 60px)}
+.sidebar{
+  border-right:1px solid var(--line);padding:16px 10px 20px;
+  background:var(--surface);display:flex;flex-direction:column;gap:20px;
+}
+.side-label{font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--faint);padding:0 10px 8px;text-transform:uppercase}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{
+  border:0;background:transparent;text-align:left;width:100%;
+  padding:7px 10px;border-radius:var(--radius);
+  color:var(--dim);font-size:11.5px;font-weight:500;
+  display:flex;align-items:center;gap:10px;
+  border-left:2px solid transparent;
+  transition:background .15s,color .15s,border-color .15s;
+  white-space:nowrap;
+}
+.nav button:hover{background:var(--active);color:var(--fg)}
+.nav button.active{
+  background:var(--active);color:var(--fg);
+  border-left-color:var(--accent);font-weight:600;
+}
+.nav-num{font-size:10px;color:var(--faint);font-weight:600;min-width:16px;letter-spacing:.04em}
+.nav button.active .nav-num{color:var(--accent)}
+
+.side-footer{margin-top:auto;border:1px solid var(--line);background:var(--bg);border-radius:var(--radius);padding:10px 11px}
+.side-footer strong{display:block;font-size:11px;margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.side-footer p{font-size:10.5px;color:var(--dim);margin:0 0 8px;line-height:1.5}
+.data-tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:9.5px;color:var(--dim);background:var(--active);border:1px solid var(--line);border-radius:3px;padding:2px 6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+
+.main{padding:20px 22px 40px;min-width:0;max-width:1800px;width:100%;margin:0 auto}
+
+/* ---------- Page header ---------- */
+.page-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap}
+.eyebrow{font-size:10px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;font-weight:600;margin-bottom:5px}
+.page-head h1{font-size:22px;letter-spacing:-.02em;line-height:1.15;margin:0 0 5px;font-weight:600}
+.page-head p{font-size:12px;color:var(--dim);margin:0;max-width:720px;line-height:1.55}
+.head-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* ---------- Metric grid ---------- */
+.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.metric{
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--rl);
+  padding:12px 13px;min-width:0;
+}
+.metric-top{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--dim);font-size:11px}
+.metric-ico{
+  display:grid;place-items:center;width:24px;height:24px;
+  border-radius:var(--radius);background:var(--active);color:var(--accent);
+  font-weight:700;font-size:11px;border:1px solid var(--line);
+}
+.metric-value{font-size:22px;letter-spacing:-.02em;font-weight:600;margin:8px 0 4px;font-variant-numeric:tabular-nums;font-family:var(--font)}
+.metric-foot{font-size:10px;color:var(--faint);display:flex;align-items:center;gap:5px;line-height:1.4}
+.metric-foot .good{color:var(--good);font-weight:700}
+.metric-foot .warn{color:var(--accent);font-weight:700}
+
+/* ---------- Cards ---------- */
+.card{
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:var(--rl);min-width:0;overflow:hidden;
+}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 14px;border-bottom:1px solid var(--line);
+}
+.card-title{font-weight:600;font-size:12.5px;letter-spacing:-.005em}
+.card-sub{font-size:10.5px;color:var(--dim);margin-top:2px;line-height:1.4}
+.card-body{padding:12px 14px}
+
+/* ---------- Content layouts ---------- */
+.content-grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(280px,.85fr);gap:12px;align-items:stretch}
+.view-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,.75fr);gap:12px}
+.bottom-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;margin-top:12px}
+
+/* ---------- Map card ---------- */
+.map-card{display:flex;flex-direction:column;min-height:530px}
+.map-card .card-head{align-items:flex-start;flex-wrap:wrap}
+.map-toolbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.segmented{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--bg)}
+.segmented button{
+  border:0;background:transparent;padding:5px 9px;
+  font-size:10.5px;font-weight:600;color:var(--dim);
+  border-right:1px solid var(--line);
+  transition:background .15s,color .15s;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.segmented button:last-child{border-right:0}
+.segmented button:hover{background:var(--active);color:var(--fg)}
+.segmented button.active{background:var(--accent);color:var(--accent-fg)}
+.map-wrap{position:relative;min-height:350px;flex:1;background:#e7eceb}
+.map{position:absolute;inset:0}
+.maplibregl-ctrl-group{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--radius)!important;box-shadow:none!important}
+.maplibregl-ctrl-group button{background:var(--surface)!important;color:var(--fg)!important}
+.maplibregl-ctrl-attrib{font-size:9px!important;font-family:var(--font)!important;background:var(--surface)!important;color:var(--dim)!important;border-radius:3px!important}
+.maplibregl-popup-content{
+  font-family:var(--font)!important;border-radius:var(--radius)!important;
+  padding:10px 12px!important;box-shadow:0 4px 16px rgba(0,0,0,.12)!important;
+  min-width:180px;background:var(--surface)!important;color:var(--fg)!important;
+  border:1px solid var(--line)!important;
+}
+.maplibregl-popup-close-button{font-size:16px;padding:2px 6px;color:var(--dim)!important}
+.map-popup-title{font-weight:600;margin-bottom:6px;font-size:12px}
+.map-popup-row{display:flex;justify-content:space-between;gap:15px;font-size:10.5px;margin-top:3px}
+.map-popup-row span:first-child{color:var(--dim)}
+.map-popup-note{border-top:1px solid var(--line);margin-top:8px;padding-top:7px;color:var(--accent);font-size:10px;line-height:1.4;letter-spacing:.02em}
+
+.map-overlay{
+  position:absolute;z-index:3;top:10px;left:10px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:8px 10px;max-width:210px;box-shadow:var(--shadow);
+}
+.map-overlay strong{font-size:11px;display:block;font-weight:600}
+.map-overlay small{font-size:10px;color:var(--dim);display:block;margin-top:3px;line-height:1.4}
+
+.map-legend{
+  position:absolute;z-index:3;bottom:12px;left:10px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:8px 10px;width:170px;box-shadow:var(--shadow);
+}
+.legend-title{font-size:10px;font-weight:600;display:flex;justify-content:space-between;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.legend-gradient{height:6px;border-radius:3px;background:linear-gradient(90deg,#2563eb,#06b6d4,#84cc16,#f59e0b,#dc2626)}
+.legend-ticks{display:flex;justify-content:space-between;color:var(--faint);font-size:9px;margin-top:3px}
+.map-credit{
+  position:absolute;right:8px;bottom:6px;z-index:3;
+  font-size:9px;color:var(--dim);background:var(--surface);
+  padding:2px 6px;border-radius:3px;border:1px solid var(--line);
+}
+.map-bottom{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:9px 13px;border-top:1px solid var(--line);background:var(--surface);
+  font-size:10.5px;color:var(--dim);flex-wrap:wrap;
+}
+.map-bottom .hint b{color:var(--fg);font-weight:600}
+.data-status{display:flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+
+/* ---------- Right stack ---------- */
+.right-stack{display:flex;flex-direction:column;gap:12px}
+.status-card .card-body{padding:0}
+.station-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);cursor:default}
+.station-row:last-child{border-bottom:0}
+.station-state{width:7px;height:7px;border-radius:50%;background:var(--good);flex:0 0 auto}
+.station-state.warn{background:var(--accent)}
+.station-state.off{background:var(--faint)}
+.station-info{flex:1;min-width:0}
+.station-info strong{font-size:11px;display:block;font-weight:600}
+.station-info small{font-size:10px;color:var(--dim);display:block;margin-top:1px}
+.station-reading{text-align:right;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.station-reading small{display:block;color:var(--dim);font-weight:500;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+
+/* ---------- Chart ---------- */
+.trend-card{flex:1;min-height:200px}
+.chart-wrap{padding:4px 12px 12px}
+.chart-legend{display:flex;align-items:center;gap:13px;font-size:10px;color:var(--dim);padding:0 4px 8px}
+.legend-dot{width:7px;height:7px;border-radius:2px;display:inline-block;margin-right:4px;background:var(--accent)}
+.legend-dot.orange{background:var(--warn)}
+.line-chart{width:100%;height:135px;display:block;overflow:visible}
+
+/* ---------- Tables ---------- */
+.table-scroll{overflow-x:auto}
+.compact-table{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--font)}
+.compact-table th{
+  font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;
+  font-size:9.5px;text-align:left;background:var(--bg);padding:8px 12px;
+  border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.compact-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;color:var(--fg)}
+.compact-table tbody tr:last-child td{border-bottom:0}
+.compact-table tbody tr:hover{background:var(--active);cursor:pointer}
+.cell-muted{color:var(--dim)}
+
+.status-label{
+  background:var(--active);color:var(--good);
+  font-size:9.5px;padding:2px 7px;border-radius:3px;
+  font-weight:600;display:inline-block;
+  text-transform:uppercase;letter-spacing:.04em;
+  border:1px solid var(--line);
+}
+.status-label.review{color:var(--accent)}
+.status-label.risk{color:var(--bad)}
+
+/* ---------- Activity ---------- */
+.activity{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.activity:last-child{border-bottom:0;padding-bottom:0}
+.activity:first-child{padding-top:0}
+.activity-mark{
+  width:24px;height:24px;display:grid;place-items:center;
+  background:var(--active);border-radius:var(--radius);font-size:11px;
+  flex:0 0 auto;color:var(--accent);border:1px solid var(--line);font-weight:600;
+}
+.activity strong{display:block;font-size:11px;font-weight:600}
+.activity p{margin:2px 0 0;color:var(--dim);font-size:10.5px;line-height:1.5}
+.activity time{margin-left:auto;font-size:9px;color:var(--faint);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+
+/* ---------- Section views ---------- */
+.section-view{display:none}
+.section-view.active{display:block}
+
+/* ---------- Fields ---------- */
+.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:10px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.field small{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
+.field input,.field select,.field textarea{
+  width:100%;border:1px solid var(--line);background:var(--bg);
+  border-radius:var(--radius);padding:7px 9px;min-width:0;color:var(--fg);
+  font-size:11.5px;font-family:var(--font);outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--accent)}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--accent);outline:none;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent);
+}
+.field input[type=range]{padding:0;accent-color:var(--accent)}
+.field.full{grid-column:1/-1}
+
+/* ---------- Notice ---------- */
+.notice, .screening-box{
+  background:var(--active);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:var(--radius);
+  padding:10px 12px;color:var(--dim);font-size:11.5px;line-height:1.55;
+  margin:10px 0;
+}
+.screening-box strong, .notice strong{color:var(--fg);font-weight:600;display:block;margin-bottom:3px}
+.notice::before{content:'[!] ';color:var(--accent);font-weight:600}
+.screening-box p{margin:4px 0 0;font-size:11px}
+
+/* ---------- Results ---------- */
+.result-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.result-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:8px}
+.result-row:last-child{border-bottom:0;padding-bottom:0}
+.result-row span{font-size:11px;color:var(--dim)}
+.result-row strong{text-align:right;font-size:11.5px;font-weight:600}
+
+/* ---------- Progress ---------- */
+.progress{height:5px;background:var(--active);border-radius:99px;overflow:hidden;margin-top:6px;border:1px solid var(--line)}
+.progress span{display:block;height:100%;background:var(--accent);border-radius:99px;width:0;transition:width .2s}
+
+/* ---------- Subsurface ---------- */
+.subsurface{
+  background:linear-gradient(180deg,#f3e7c5 0 16%,#d7c4a0 16% 28%,#9ec8b2 28% 34%,#7da6be 34% 70%,#477c98 70% 100%);
+  border-radius:var(--radius);border:1px solid var(--line);overflow:hidden;position:relative;min-height:310px;
+}
+.subsurface::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(177deg,transparent 0 27px,#ffffff33 28px 30px,transparent 31px 54px);opacity:.5}
+.subsurface-top{position:relative;padding:14px;color:#2d302a;background:linear-gradient(180deg,#f5e6c6dd,#f5e6c600);height:70px;font-size:11px;font-weight:600;font-family:var(--font)}
+.waterline{position:absolute;top:35%;left:0;right:0;border-top:2px dashed #075985;z-index:2}
+.waterline-label{position:absolute;right:12px;top:calc(35% - 20px);color:#075985;background:#e0f2fe;border-radius:3px;padding:2px 6px;font-size:10px;font-weight:600;z-index:2;font-family:var(--font)}
+.well-shaft{position:absolute;top:7%;left:29%;width:6px;height:84%;background:#f9fafb;border:2px solid #777;z-index:3;border-radius:2px}
+.well-label{position:absolute;left:calc(29% + 14px);top:12%;font-size:10px;color:#333;background:#ffffffd9;border-radius:3px;padding:3px 6px;z-index:3;font-family:var(--font)}
+.layer-label{position:absolute;left:10px;z-index:3;font-size:10px;font-weight:600;color:#2d3e4a;background:#ffffffc9;border-radius:3px;padding:2px 6px;font-family:var(--font);text-transform:uppercase;letter-spacing:.04em}
+.layer-label.l1{top:23%}
+.layer-label.l2{top:46%}
+.layer-label.l3{top:76%;color:white;background:#204c63c9}
+.subsurface-note{font-size:10.5px;color:var(--dim);margin-top:8px;line-height:1.5}
+.blank-panel{min-height:170px;display:grid;place-items:center;text-align:center;color:var(--dim);padding:20px;font-size:11.5px}
+.blank-panel strong{display:block;color:var(--fg);margin:8px 0 4px;font-weight:600}
+
+/* ---------- Source cards ---------- */
+.source-card{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.source-card:last-child{border:0}
+.source-mark{height:32px;width:32px;border:1px solid var(--line);border-radius:var(--radius);display:grid;place-items:center;font-size:10px;font-weight:700;flex:0 0 auto;background:var(--active);color:var(--accent);font-family:var(--font);letter-spacing:.04em}
+.source-card strong{font-size:11.5px;display:block;font-weight:600}
+.source-card small{font-size:10.5px;color:var(--dim);display:block;margin-top:3px;line-height:1.5}
+.source-card a{display:inline-block;color:var(--accent);font-size:10px;font-weight:600;margin-top:5px;text-decoration:none;text-transform:uppercase;letter-spacing:.04em}
+.source-card a:hover{text-decoration:underline;text-underline-offset:2px}
+
+.pill-row{display:flex;flex-wrap:wrap;gap:4px}
+.pill-toggle{
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);
+  padding:5px 9px;font-size:10.5px;font-weight:600;color:var(--dim);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.pill-toggle.active{border-color:var(--accent);background:var(--active);color:var(--accent)}
+
+/* ---------- Search result ---------- */
+.search-result{
+  display:none;padding:8px 11px;background:var(--active);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:var(--radius);color:var(--fg);font-size:11.5px;
+  margin-bottom:12px;line-height:1.5;
+}
+.search-result.show{display:block}
+.search-result strong{font-weight:600}
+.search-result .mini-link{margin-left:6px}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:100;background:rgba(10,10,12,.55);
+  display:none;align-items:center;justify-content:center;padding:18px;
+  backdrop-filter:blur(4px);
+}
+.modal-backdrop.open{display:flex}
+.modal{
+  width:min(520px,100%);background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--rl);
+  max-height:92vh;overflow:auto;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);
+}
+.modal-head{
+  padding:12px 16px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.modal-head h3{font-size:13px;margin:0;font-weight:600}
+.modal-content{padding:14px 16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:16px;flex-wrap:wrap}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;z-index:120;bottom:18px;right:18px;
+  background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  box-shadow:0 4px 16px rgba(0,0,0,.10);
+  border-radius:var(--radius);padding:8px 12px;
+  font-size:11.5px;max-width:min(380px,calc(100vw - 36px));
+  opacity:0;transform:translateY(8px);pointer-events:none;
+  transition:opacity .2s,transform .2s;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ---------- Utilities ---------- */
+.footer-note{font-size:10.5px;color:var(--faint);padding:18px 2px 0;line-height:1.55}
+.subhead{font-size:11px;font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.muted{color:var(--dim)}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.input-inline{display:flex;align-items:center;gap:8px}
+.input-inline input{flex:1;min-width:0}
+.input-inline span{color:var(--dim);font-size:10px}
+.kicker{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.5}
+.wide{width:100%}
+.mobile-menu{display:none}
+
+/* ---------- Responsive ---------- */
+@media(max-width:1150px){
+  :root{--sidebar:215px}
+  .topbar{padding:0 16px}
+  .main{padding:18px 16px}
+  .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .content-grid{grid-template-columns:minmax(0,1.35fr) minmax(270px,.8fr)}
+  .top-search{max-width:340px}
+}
+@media(max-width:850px){
+  .topbar{height:auto;min-height:60px;padding:8px 14px;flex-wrap:wrap;gap:8px}
+  .brand{font-size:13px}
+  .top-search{max-width:none;flex:1 1 200px;order:3;width:100%;margin-top:4px}
+  .top-actions{order:2;gap:6px}
+  .top-actions .pill{display:none}
+  .layout{display:block}
+  .sidebar{
+    position:fixed;top:60px;bottom:0;left:0;width:250px;z-index:50;
+    transform:translateX(-105%);transition:transform .2s ease;
+    box-shadow:12px 0 30px rgba(0,0,0,.08);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .mobile-menu{display:grid}
+  .content-grid,.view-grid,.bottom-grid{grid-template-columns:1fr}
+  .map-card{min-height:480px}
+  .map-wrap{min-height:380px}
+  .page-head h1{font-size:19px}
+  .main{padding:14px 12px 28px}
+  .head-actions .btn{padding:4px 8px}
+}
+@media(max-width:520px){
+  .topbar{gap:6px;padding:8px 12px}
+  .brand-mark{width:24px;height:24px}
+  .brand{font-size:12px}
+  .top-search{max-width:100%;padding:0 8px;height:30px}
+  .top-search input{font-size:11px}
+  .top-actions .btn:not(.icon-btn){display:none}
+  .metric-grid{gap:8px;grid-template-columns:1fr 1fr}
+  .metric{padding:10px}
+  .metric-value{font-size:19px}
+  .metric-top{font-size:10px}
+  .page-head{display:block}
+  .head-actions{justify-content:flex-start;margin-top:12px}
+  .field-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .card-head{padding:10px 12px}
+  .map-toolbar .segmented button{padding:4px 6px;font-size:10px}
+  .map-legend{width:148px;font-size:9px}
+  .map-overlay{max-width:170px}
+  .map-overlay small{font-size:9px}
+  .compact-table{min-width:620px}
+  .map-card{min-height:500px}
+  .map-wrap{min-height:400px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ================= TOPBAR ================= -->
+<header class="topbar">
+  <button class="btn icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+  <a class="brand" href="#" aria-label="Aznur Water Intelligence home">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.8C9.6 6.8 5.5 10.7 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.7 14.4 6.8 12 2.8Z" stroke="currentColor" stroke-width="1.8"/>
+      </svg>
+    </span>
+    <span>aznur<span class="slash">/</span>water</span>
+  </a>
+  <div class="top-search">
+    <span aria-hidden="true">⌕</span>
+    <input id="globalSearch" type="search" placeholder="Search district, station, layer…" autocomplete="off">
+    <span class="search-key">/</span>
+  </div>
+  <div class="top-actions">
+    <label class="small-caps" for="themeSelect">Theme</label>
+    <select id="themeSelect" class="select" aria-label="Theme">
+      <option value="system">System</option>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+    </select>
+    <span class="pill"><i class="dot warn"></i> Demo dataset</span>
+    <button class="btn" id="exportBtn" title="Export demo data as JSON">↓ Export</button>
+    <button class="btn icon-btn" id="importBtn" title="Import JSON" aria-label="Import JSON">↑</button>
+    <input id="importFile" type="file" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<!-- ================= LAYOUT ================= -->
+<div class="layout">
+<aside class="sidebar" id="sidebar">
+  <div>
+    <div class="side-label">Workspace</div>
+    <nav class="nav" aria-label="Main navigation">
+      <button class="active" data-page="overview"><span class="nav-num">01</span>National overview</button>
+      <button data-page="groundwater"><span class="nav-num">02</span>Groundwater explorer</button>
+      <button data-page="surface"><span class="nav-num">03</span>Rivers &amp; floodwater</button>
+      <button data-page="mar"><span class="nav-num">04</span>MAR planner</button>
+      <button data-page="stations"><span class="nav-num">05</span>Monitoring stations</button>
+      <button data-page="subsurface"><span class="nav-num">06</span>3D aquifer profile</button>
+    </nav>
+  </div>
+  <div>
+    <div class="side-label">Analysis</div>
+    <nav class="nav">
+      <button data-page="recommendations"><span class="nav-num">07</span>Project recommendations</button>
+      <button data-page="data"><span class="nav-num">08</span>Data &amp; integration</button>
+    </nav>
+  </div>
+  <div class="side-footer">
+    <strong>Prototype status</strong>
+    <p>Visual demonstration with synthetic station readings. Live BWDB or field sensor data is not connected.</p>
+    <div class="data-tags"><span class="tag">API-ready</span><span class="tag">Local</span><span class="tag">MapLibre</span></div>
+  </div>
+</aside>
+
+<main class="main">
+  <div id="searchResult" class="search-result"></div>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="section-view active" id="page-overview">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Water security / Bangladesh</div>
+        <h1>National water intelligence</h1>
+        <p>Explore groundwater conditions, surface-water pressure and candidate Managed Aquifer Recharge areas from one map.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="refreshDemo">↻ Refresh demo</button>
+        <button class="btn primary" id="goMAR">＋ Evaluate MAR site</button>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-top"><span>Observation stations</span><span class="metric-ico">⌁</span></div><div class="metric-value mono" id="metricStations">12</div><div class="metric-foot"><span class="warn">SIMULATED</span><span>illustrative locations</span></div></div>
+      <div class="metric"><div class="metric-top"><span>Recharge index (demo)</span><span class="metric-ico">↓</span></div><div class="metric-value mono" id="metricRecharge">0.42 <span style="font-size:12px;font-weight:500">demo units</span></div><div class="metric-foot">Demo cumulative total, not a measured national value</div></div>
+      <div class="metric"><div class="metric-top"><span>Stations needing review</span><span class="metric-ico" style="color:var(--bad)">!</span></div><div class="metric-value mono" id="metricReview">3</div><div class="metric-foot"><span class="warn">DEMO FLAG</span><span>thresholds illustrative</span></div></div>
+      <div class="metric"><div class="metric-top"><span>Data freshness</span><span class="metric-ico">◷</span></div><div class="metric-value" style="font-size:18px" id="metricFreshness">Demo mode</div><div class="metric-foot">No live feed connected</div></div>
+    </div>
+
+    <div class="content-grid">
+      <article class="card map-card">
+        <div class="card-head">
+          <div><div class="card-title">Bangladesh monitoring map</div><div class="card-sub">Select a station for its demo readings. Use map layers to explore.</div></div>
+          <div class="map-toolbar">
+            <div class="segmented" id="basemapToggle">
+              <button data-basemap="street" class="active">Street</button>
+              <button data-basemap="satellite">Satellite</button>
+              <button data-basemap="terrain">3D terrain</button>
+            </div>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div id="map" class="map" aria-label="Interactive map of Bangladesh"></div>
+          <div class="map-overlay"><strong id="mapLayerName">Groundwater level</strong><small id="mapLayerDesc">Illustrative measurements, not official readings.</small></div>
+          <div class="map-legend">
+            <div class="legend-title"><span id="legendName">Depth to water</span><span>ⓘ</span></div>
+            <div class="legend-gradient" id="legendGradient"></div>
+            <div class="legend-ticks" id="legendTicks"><span>Shallow</span><span>Deep</span></div>
+          </div>
+          <div class="map-credit" id="mapCredit">OpenFreeMap · demo stations</div>
+        </div>
+        <div class="map-bottom">
+          <div class="hint"><b id="stationCountHint">12 illustrative stations</b> · select a marker to inspect</div>
+          <div class="data-status"><span class="dot warn"></span><span>SYNTHETIC DATA</span></div>
+        </div>
+      </article>
+
+      <div class="right-stack">
+        <article class="card status-card">
+          <div class="card-head">
+            <div><div class="card-title">Station status</div><div class="card-sub">Sample network health</div></div>
+            <button class="mini-link" data-goto="stations">View all ↗</button>
+          </div>
+          <div class="card-body" id="stationStatusList"></div>
+        </article>
+        <article class="card trend-card">
+          <div class="card-head">
+            <div><div class="card-title">Illustrative water-level trend</div><div class="card-sub" id="trendStationName">Dhaka pilot · synthetic values</div></div>
+            <select id="trendRange" class="select" aria-label="Trend period">
+              <option value="12">12 months</option>
+              <option value="6">6 months</option>
+            </select>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-legend"><span><i class="legend-dot"></i> Depth below ground (m)</span><span><i class="legend-dot orange"></i> Reference line</span></div>
+            <svg id="trendChart" class="line-chart" viewBox="0 0 500 150" role="img" aria-label="Illustrative water level trend chart"></svg>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <article class="card">
+        <div class="card-head">
+          <div><div class="card-title">Candidate area screening</div><div class="card-sub">Illustrative, unvalidated regional signals</div></div>
+          <button class="mini-link" data-goto="recommendations">Open project review ↗</button>
+        </div>
+        <div class="table-scroll"><table class="compact-table"><thead><tr><th>Area</th><th>Primary concern</th><th>Potential direction</th><th>Confidence</th></tr></thead><tbody id="candidateTable"></tbody></table></div>
+      </article>
+      <article class="card">
+        <div class="card-head">
+          <div><div class="card-title">System activity</div><div class="card-sub">Local prototype events</div></div>
+          <span class="tag">Local</span>
+        </div>
+        <div class="card-body" id="activityFeed"></div>
+      </article>
+    </div>
+    <div class="footer-note">Planning interface only. All station readings, sample recharge totals, risk flags and trend lines shown in this prototype are synthetic. Do not use for operational water-management decisions.</div>
+  </section>
+
+  <!-- ============ GROUNDWATER ============ -->
+  <section class="section-view" id="page-groundwater">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Hydrogeology / Observations</div>
+        <h1>Groundwater explorer</h1>
+        <p>Inspect water-table depth, hydraulic head, aquifer properties and temporal changes. Geological values remain unknown until surveyed or supplied by a verified dataset.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="groundwaterExport">↓ Export station CSV</button>
+        <button class="btn primary" data-goto="subsurface">View aquifer profile ↗</button>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-top"><span>Stations represented</span><span class="metric-ico">⌁</span></div><div class="metric-value" id="gwCount">12</div><div class="metric-foot">Synthetic locations</div></div>
+      <div class="metric"><div class="metric-top"><span>Mean depth to water</span><span class="metric-ico">↓</span></div><div class="metric-value" id="gwMean">7.8 m</div><div class="metric-foot">Calculated from demo values only</div></div>
+      <div class="metric"><div class="metric-top"><span>Deepest sample</span><span class="metric-ico">⇣</span></div><div class="metric-value" id="gwMax">19.4 m</div><div class="metric-foot">Not a national statistic</div></div>
+      <div class="metric"><div class="metric-top"><span>Verified borehole logs</span><span class="metric-ico">▤</span></div><div class="metric-value">0</div><div class="metric-foot">Upload records to populate</div></div>
+    </div>
+    <div class="content-grid">
+      <article class="card map-card">
+        <div class="card-head">
+          <div><div class="card-title">Groundwater level surface</div><div class="card-sub">Point measurements are shown. Interpolation would require validated data and a chosen method.</div></div>
+          <div class="map-toolbar">
+            <div class="segmented" id="gwMetricToggle">
+              <button class="active" data-metric="depth">Depth</button>
+              <button data-metric="head">Head</button>
+              <button data-metric="risk">Risk</button>
+            </div>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div id="mapGw" class="map"></div>
+          <div class="map-overlay"><strong id="gwMapTitle">Depth to water table</strong><small>Illustrative points. No authoritative interpolation.</small></div>
+          <div class="map-legend">
+            <div class="legend-title"><span id="gwLegendName">Meters below ground</span></div>
+            <div class="legend-gradient"></div>
+            <div class="legend-ticks"><span>Low</span><span>High</span></div>
+          </div>
+        </div>
+        <div class="map-bottom"><div class="hint">Data source status: <b>demonstration only</b></div><div class="data-status"><span class="dot warn"></span><span>Not official</span></div></div>
+      </article>
+      <article class="card">
+        <div class="card-head"><div><div class="card-title">Aquifer interpretation</div><div class="card-sub">Current point selection</div></div></div>
+        <div class="card-body" id="gwDetails">
+          <div class="blank-panel"><div><strong>Select a station on the map</strong>View its synthetic level and data limitations.</div></div>
+        </div>
+        <div class="card-body" style="border-top:1px solid var(--line)">
+          <div class="subhead">Key variables</div>
+          <div class="result-list">
+            <div class="result-row"><span>Specific yield</span><strong>Not measured</strong></div>
+            <div class="result-row"><span>Hydraulic conductivity</span><strong>Not measured</strong></div>
+            <div class="result-row"><span>Aquifer thickness</span><strong>Not measured</strong></div>
+            <div class="result-row"><span>Arsenic / salinity profile</span><strong>Lab data required</strong></div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ SURFACE ============ -->
+  <section class="section-view" id="page-surface">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Catchment / Flood operations</div>
+        <h1>Rivers &amp; floodwater</h1>
+        <p>Evaluate candidate conveyance and floodwater capture options. Recommendations here are screening outputs, not operating instructions.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="openSources">Open official data links ↗</button>
+        <button class="btn primary" data-goto="recommendations">Review candidates</button>
+      </div>
+    </div>
+    <div class="content-grid">
+      <article class="card map-card">
+        <div class="card-head">
+          <div><div class="card-title">River, canal and flood layer</div><div class="card-sub">Use current agency flood products for operational decisions.</div></div>
+          <div class="map-toolbar">
+            <div class="segmented" id="surfaceToggle">
+              <button class="active" data-layer="rivers">River network</button>
+              <button data-layer="capture">Capture candidates</button>
+              <button data-layer="flood">Flood risk</button>
+            </div>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div id="mapSurface" class="map"></div>
+          <div class="map-overlay"><strong id="surfaceLayerName">River network</strong><small id="surfaceLayerDesc">Basemap rivers plus illustrative capture-site markers.</small></div>
+        </div>
+        <div class="map-bottom"><span class="hint">No real-time flood warning feed is connected.</span><span class="data-status"><span class="dot warn"></span>CHECK BULLETINS</span></div>
+      </article>
+      <article class="card">
+        <div class="card-head"><div><div class="card-title">Water-routing screen</div><div class="card-sub">Quick screening example</div></div></div>
+        <div class="card-body">
+          <div class="field-grid">
+            <div class="field"><label for="riverFlow">Estimated river flow (m³/s)</label><input id="riverFlow" type="number" min="0" value="180"></div>
+            <div class="field"><label for="downstreamReserve">Downstream reserve (%)</label><input id="downstreamReserve" type="number" min="0" max="100" value="65"></div>
+            <div class="field"><label for="channelCapacity">Existing channel capacity (m³/s)</label><input id="channelCapacity" type="number" min="0" value="110"></div>
+            <div class="field"><label for="captureCapacity">Candidate route capacity (m³/s)</label><input id="captureCapacity" type="number" min="0" value="18"></div>
+          </div>
+          <button class="btn primary wide" style="margin-top:12px" id="routeCalc">Evaluate routing screen</button>
+          <div class="screening-box" id="routeResult">
+            <strong>Screening result not yet calculated</strong>
+            <p>Inputs are placeholders. Add measured gauge data, a downstream flow rule and channel surveys before using any result.</p>
+          </div>
+          <div style="margin-top:12px" class="subhead">Dredging evidence checklist</div>
+          <div id="dredgeChecklist" style="display:grid;gap:8px;font-size:11px;color:var(--dim)">
+            <label><input type="checkbox"> Current cross-sections and bathymetry available</label>
+            <label><input type="checkbox"> Sediment quality tested</label>
+            <label><input type="checkbox"> Upstream and downstream hydraulic effects assessed</label>
+            <label><input type="checkbox"> Disposal site and habitat effects assessed</label>
+          </div>
+        </div>
+      </article>
+    </div>
+    <div class="screening-box" style="margin-top:12px">
+      <strong>Safety condition</strong>
+      <p>Never route floodwater into a recharge site based solely on high river level. Confirm source-water quality, available aquifer storage, environmental flow, structural capacity, downstream effects and agency authorization.</p>
+    </div>
+  </section>
+
+  <!-- ============ MAR ============ -->
+  <section class="section-view" id="page-mar">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Managed aquifer recharge / Site design</div>
+        <h1>MAR site planner</h1>
+        <p>A first-pass calculator to screen a proposed source, treatment train and receiving area. Results are indicative only and do not certify recharge safety.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="resetMAR">Reset example</button>
+        <button class="btn" id="marExport">↓ Export assessment JSON</button>
+      </div>
+    </div>
+    <div class="view-grid">
+      <article class="card">
+        <div class="card-head">
+          <div><div class="card-title">Source water and recharge site</div><div class="card-sub">Change inputs to update the screening result.</div></div>
+          <span class="tag">Screening tool</span>
+        </div>
+        <div class="card-body">
+          <div class="field-grid">
+            <div class="field"><label for="marSource">Water source</label><select id="marSource"><option value="river">River or floodwater</option><option value="canal">Canal</option><option value="pond">Pond or wetland</option><option value="rain">Harvested rainwater</option><option value="treated">Treated wastewater</option></select></div>
+            <div class="field"><label for="marMethod">Recharge method</label><select id="marMethod"><option value="basin">Infiltration basin</option><option value="gallery">Infiltration gallery</option><option value="well">Recharge well</option></select></div>
+            <div class="field"><label for="marTurbidity">Turbidity (NTU)</label><input id="marTurbidity" type="number" value="18" min="0" step="1"></div>
+            <div class="field"><label for="marTds">TDS (mg/L)</label><input id="marTds" type="number" value="420" min="0" step="10"></div>
+            <div class="field"><label for="marEc">Electrical conductivity (µS/cm)</label><input id="marEc" type="number" value="650" min="0" step="10"></div>
+            <div class="field"><label for="marArea">Infiltration area (hectares)</label><input id="marArea" type="number" value="2" min="0" step="0.1"></div>
+            <div class="field"><label for="marRate">Tested infiltration rate (m/day)</label><input id="marRate" type="number" value="0.12" min="0" step="0.01"></div>
+            <div class="field"><label for="marDays">Operating days</label><input id="marDays" type="number" value="30" min="0" step="1"></div>
+            <div class="field"><label for="marStorage">Available aquifer storage (m³)</label><input id="marStorage" type="number" value="65000" min="0" step="1000"></div>
+            <div class="field"><label for="marQuality">Laboratory / source status</label><select id="marQuality"><option value="unknown">Not fully tested</option><option value="pass">Complete lab package</option><option value="fail">Known contamination concern</option></select></div>
+            <div class="field full"><label for="marNotes">Field notes (optional)</label><textarea id="marNotes" rows="2" placeholder="Aquifer type, source condition, nearby wells, existing treatment…"></textarea></div>
+          </div>
+          <div class="screening-box">
+            <strong>Before running the screen</strong>
+            <p>The numeric flags are illustrative triage heuristics, not Bangladesh regulatory thresholds. Laboratory results and an aquifer-specific engineering review are required.</p>
+          </div>
+        </div>
+      </article>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <article class="card">
+          <div class="card-head">
+            <div><div class="card-title">Preliminary design output</div><div class="card-sub">Calculated from the entered assumptions</div></div>
+            <span class="status-label review" id="marStatus">REVIEW REQUIRED</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <div class="metric-value" id="marVolume" style="margin:0;font-size:26px">72,000</div>
+              <span class="muted" style="font-size:11px">m³ theoretical</span>
+            </div>
+            <div class="kicker">Area × tested infiltration rate × operating time, capped by the entered storage estimate.</div>
+            <div class="progress"><span id="marProgress" style="width:60%"></span></div>
+            <div class="result-list" id="marResults"></div>
+            <div id="marWarnings" style="margin-top:12px;display:grid;gap:6px"></div>
+          </div>
+        </article>
+        <article class="card">
+          <div class="card-head">
+            <div><div class="card-title">Suggested treatment train</div><div class="card-sub">Modules must be validated with actual water</div></div>
+          </div>
+          <div class="card-body" id="filterTrain"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATIONS ============ -->
+  <section class="section-view" id="page-stations">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Telemetry / Field network</div>
+        <h1>Monitoring stations</h1>
+        <p>Manage the local demo station register. Added records are saved to this browser until exported or imported elsewhere.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="stationCsv">↓ Export CSV</button>
+        <button class="btn primary" id="addStation">＋ Add station</button>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-top"><span>Registered</span><span class="metric-ico">⌁</span></div><div class="metric-value" id="stTotal">12</div><div class="metric-foot">Includes synthetic examples</div></div>
+      <div class="metric"><div class="metric-top"><span>Online (demo)</span><span class="metric-ico" style="color:var(--good)">●</span></div><div class="metric-value" id="stOnline">8</div><div class="metric-foot">Not an actual device connection</div></div>
+      <div class="metric"><div class="metric-top"><span>Needs review</span><span class="metric-ico" style="color:var(--bad)">!</span></div><div class="metric-value" id="stReview">3</div><div class="metric-foot">Illustrative quality flags</div></div>
+      <div class="metric"><div class="metric-top"><span>API connected</span><span class="metric-ico">↔</span></div><div class="metric-value">No</div><div class="metric-foot">Configure backend in Data &amp; integration</div></div>
+    </div>
+    <article class="card">
+      <div class="card-head">
+        <div><div class="card-title">Station registry</div><div class="card-sub">Click a row to locate that station on the map.</div></div>
+        <select id="stationFilter" class="select">
+          <option value="all">All stations</option>
+          <option value="Online">Online demo</option>
+          <option value="Review">Needs review</option>
+          <option value="Offline">Offline demo</option>
+        </select>
+      </div>
+      <div class="table-scroll">
+        <table class="compact-table" style="width:100%">
+          <thead><tr><th>Station ID</th><th>Location</th><th>Type</th><th>Depth to water</th><th>Last update</th><th>Status</th><th>Data kind</th></tr></thead>
+          <tbody id="allStationsTable"></tbody>
+        </table>
+      </div>
+    </article>
+    <div class="screening-box">
+      <strong>Device security baseline</strong>
+      <p>Real devices should authenticate with per-device credentials, send data over TLS, carry device timestamps and calibration metadata, and never expose write endpoints to unauthenticated public users. Browser-added demo stations are not registered field instruments.</p>
+    </div>
+  </section>
+
+  <!-- ============ SUBSURFACE ============ -->
+  <section class="section-view" id="page-subsurface">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">3D geology / Conceptual section</div>
+        <h1>3D aquifer profile</h1>
+        <p>Explore a conceptual underground cross-section. This is an educational schematic, not interpreted geology for a real location.</p>
+      </div>
+      <div class="head-actions"><button class="btn" id="downloadProfile">↓ Export profile notes</button></div>
+    </div>
+    <div class="view-grid">
+      <article class="card">
+        <div class="card-head">
+          <div><div class="card-title">Subsurface section</div><div class="card-sub" id="profileLocation">Conceptual unconfined aquifer</div></div>
+          <select id="profileType" class="select">
+            <option value="unconfined">Unconfined aquifer</option>
+            <option value="confined">Confined aquifer concept</option>
+            <option value="clay">Clay-dominated site</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div class="subsurface" id="subsurfaceGraphic">
+            <div class="subsurface-top">Ground surface / land elevation</div>
+            <div class="waterline"></div>
+            <div class="waterline-label">Illustrative water table</div>
+            <div class="well-shaft"></div>
+            <div class="well-label">Observation well</div>
+            <div class="layer-label l1">Unsaturated zone</div>
+            <div class="layer-label l2">Saturated sand / gravel</div>
+            <div class="layer-label l3">Deeper geological layer</div>
+          </div>
+          <div class="subsurface-note">Layer colors are schematic. Replace them with surveyed borehole lithology, geophysics, water levels and a shared vertical datum before using this view for engineering.</div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-head"><div><div class="card-title">Hydrogeology notes</div><div class="card-sub">How to interpret the cross-section</div></div></div>
+        <div class="card-body" id="profileNotes">
+          <div class="result-list">
+            <div class="result-row"><span>Water table</span><strong>Position changes seasonally</strong></div>
+            <div class="result-row"><span>Recharge pathway</span><strong>Infiltration through permeable material</strong></div>
+            <div class="result-row"><span>Storage behaviour</span><strong>Requires specific yield / storativity</strong></div>
+            <div class="result-row"><span>Validation</span><strong>Borehole and aquifer tests needed</strong></div>
+          </div>
+        </div>
+        <div class="card-body" style="border-top:1px solid var(--line)">
+          <div class="subhead">Minimum field data</div>
+          <div style="display:grid;gap:6px;font-size:11px;color:var(--dim)">
+            <div>□ Surveyed top-of-casing elevation</div>
+            <div>□ Lithology and screened interval</div>
+            <div>□ Seasonal groundwater levels</div>
+            <div>□ Hydraulic conductivity and storage parameter</div>
+            <div>□ Source and receiving aquifer chemistry</div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ RECOMMENDATIONS ============ -->
+  <section class="section-view" id="page-recommendations">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Decision support / Project pipeline</div>
+        <h1>Project recommendations</h1>
+        <p>Illustrative candidates for surveys and feasibility studies. No design, site ranking or project order is approved by this application.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn" id="exportProjects">↓ Export register</button>
+        <button class="btn primary" data-goto="mar">＋ New MAR screening</button>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-top"><span>Candidate concepts</span><span class="metric-ico">◇</span></div><div class="metric-value">4</div><div class="metric-foot">Not engineering-approved projects</div></div>
+      <div class="metric"><div class="metric-top"><span>Field surveys outstanding</span><span class="metric-ico">⌖</span></div><div class="metric-value">4</div><div class="metric-foot">Current survey datasets not attached</div></div>
+      <div class="metric"><div class="metric-top"><span>Cost estimates</span><span class="metric-ico">৳</span></div><div class="metric-value">None</div><div class="metric-foot">Requires quantity survey and quotes</div></div>
+      <div class="metric"><div class="metric-top"><span>Approved interventions</span><span class="metric-ico" style="color:var(--good)">✓</span></div><div class="metric-value">0</div><div class="metric-foot">No authority workflow connected</div></div>
+    </div>
+    <div id="projectCards" class="view-grid"></div>
+    <div class="screening-box">
+      <strong>Recommendation policy</strong>
+      <p>The system may identify and rank candidates for expert review. It must not command gate changes, river diversions or dredging without validated hydraulic models, environmental checks and approval by the responsible agency.</p>
+    </div>
+  </section>
+
+  <!-- ============ DATA ============ -->
+  <section class="section-view" id="page-data">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">System configuration / Data provenance</div>
+        <h1>Data &amp; integration</h1>
+        <p>Configure an API endpoint, document source datasets and export the current prototype state. Live backend connectivity is not configured by default.</p>
+      </div>
+      <div class="head-actions"><button class="btn" id="dataExport">↓ Export all demo data</button></div>
+    </div>
+    <div class="view-grid">
+      <article class="card">
+        <div class="card-head">
+          <div><div class="card-title">Backend API connection</div><div class="card-sub">Generic REST health-check scaffold</div></div>
+          <span class="status-label review" id="apiState">NOT CONNECTED</span>
+        </div>
+        <div class="card-body">
+          <div class="field"><label for="apiBase">API base URL</label><input id="apiBase" type="url" placeholder="https://your-server.example/api" value="http://localhost:8000/api"></div>
+          <div class="kicker">For example, a FastAPI service with /health, /stations and /readings endpoints. The backend must be deployed separately.</div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn primary" id="testApi">Test /health</button>
+            <button class="btn" id="saveApi">Save endpoint locally</button>
+          </div>
+          <div class="screening-box" id="apiResult">
+            <strong>Not tested</strong>
+            <p>The app uses local synthetic data. Testing requires the API server to be running and browser cross-origin access to be configured.</p>
+          </div>
+          <div style="margin-top:14px" class="subhead">Suggested API contract</div>
+          <div class="result-list">
+            <div class="result-row"><span>GET /health</span><strong>Service and DB status</strong></div>
+            <div class="result-row"><span>GET /stations</span><strong>Station registry + coords</strong></div>
+            <div class="result-row"><span>GET /readings?station_id=…</span><strong>Timestamped observations</strong></div>
+            <div class="result-row"><span>POST /readings</span><strong>Authenticated device ingest</strong></div>
+            <div class="result-row"><span>GET /layers/aquifer</span><strong>GeoJSON / raster metadata</strong></div>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-head"><div><div class="card-title">Data source register</div><div class="card-sub">Open the source site to request access or inspect published products.</div></div></div>
+        <div class="card-body">
+          <div class="source-card"><div class="source-mark">BW</div><div><strong>Bangladesh Water Development Board</strong><small>Groundwater daily / weekly, water quality, pumping tests, lithology, river levels and rainfall. Access terms need to be confirmed.</small><a href="https://hydrology.bwdb.gov.bd/" target="_blank" rel="noopener">Open BWDB Hydroinformatics ↗</a></div></div>
+          <div class="source-card"><div class="source-mark">FF</div><div><strong>Flood Forecasting &amp; Warning Centre</strong><small>Official flood bulletins and hydrological context. A public API connection has not been assumed.</small><a href="https://ffwc.gov.bd/" target="_blank" rel="noopener">Open FFWC ↗</a></div></div>
+          <div class="source-card"><div class="source-mark">OS</div><div><strong>OpenStreetMap via OpenFreeMap</strong><small>Basemap tiles for geographic context; use the provider terms and attribution.</small><a href="https://openfreemap.org/" target="_blank" rel="noopener">Open OpenFreeMap ↗</a></div></div>
+          <div class="source-card"><div class="source-mark">EO</div><div><strong>Satellite and terrain data</strong><small>Satellite basemap and public elevation tiles are loaded from external services. Availability and terms may change.</small><a href="https://www.arcgis.com/" target="_blank" rel="noopener">Esri data and terms ↗</a></div></div>
+          <div class="screening-box"><strong>Data provenance rule</strong><p>Every measurement should store its source, timestamp, units, sensor or laboratory method, calibration status, QC flag and whether it is observed, estimated or modeled.</p></div>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+</div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add monitoring station</h3>
+      <button class="btn icon-btn" id="closeModal" aria-label="Close dialog">×</button>
+    </div>
+    <form id="stationForm">
+      <div class="modal-content">
+        <div class="field-grid">
+          <div class="field"><label for="newStationId">Station ID</label><input id="newStationId" required placeholder="BD-DEMO-013"></div>
+          <div class="field"><label for="newStationName">Location name</label><input id="newStationName" required placeholder="District or site name"></div>
+          <div class="field"><label for="newStationLat">Latitude</label><input id="newStationLat" type="number" step="any" min="20" max="27" required placeholder="23.75"></div>
+          <div class="field"><label for="newStationLon">Longitude</label><input id="newStationLon" type="number" step="any" min="88" max="93" required placeholder="90.40"></div>
+          <div class="field"><label for="newStationType">Station type</label><select id="newStationType"><option>Groundwater well</option><option>River gauge</option><option>Recharge site</option><option>Water quality</option><option>Rainfall</option></select></div>
+          <div class="field"><label for="newStationDepth">Depth to water (m)</label><input id="newStationDepth" type="number" min="0" step="0.1" value="8.0" required></div>
+        </div>
+        <div class="screening-box">
+          <strong>Demo register only</strong>
+          <p>This form adds a record to this browser's local register. It does not pair a sensor, provision credentials or publish readings to a server.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" type="button" id="cancelModal">Cancel</button>
+          <button class="btn primary" type="submit">Add demo station</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const clone=x=>JSON.parse(JSON.stringify(x));
+const STORE_KEY='aznur_water_intelligence_v1';
+const THEME_KEY='aznur-water-theme';
+const streetStyle='https://tiles.openfreemap.org/styles/liberty';
+const satelliteStyle={version:8,sources:{satellite:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Tiles © Esri and its suppliers'}},layers:[{id:'satellite',type:'raster',source:'satellite',minzoom:0,maxzoom:19}]};
+
+/* ---------- Theme ---------- */
+function applyTheme(v){
+  if(v==='system')document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',v);
+  try{localStorage.setItem(THEME_KEY,v)}catch{}
+}
+function initTheme(){
+  let saved='system';
+  try{saved=localStorage.getItem(THEME_KEY)||'system'}catch{}
+  if(!['system','light','dark'].includes(saved))saved='system';
+  applyTheme(saved);
+  const sel=$('themeSelect');
+  if(sel){sel.value=saved;sel.addEventListener('change',e=>applyTheme(e.target.value))}
+  if(window.matchMedia){
+    const m=window.matchMedia('(prefers-color-scheme: dark)');
+    const sync=()=>{if((document.documentElement.getAttribute('data-theme')||'system')==='system')applyTheme('system')};
+    if(typeof m.addEventListener==='function')m.addEventListener('change',sync);
+    else if(typeof m.addListener==='function')m.addListener(sync);
+  }
+}
+initTheme();
+
+/* ---------- Data ---------- */
+const baseStations=[
+{id:'BD-DHK-001',name:'Dhaka North',district:'Dhaka',lat:23.8103,lon:90.4125,depth:8.7,head:5.2,type:'Groundwater well',status:'Online',risk:52,ec:720,turbidity:4.1,update:'2 min ago',kind:'Synthetic',recharge:0.04},
+{id:'BD-RAJ-002',name:'Rajshahi',district:'Rajshahi',lat:24.3745,lon:88.6042,depth:13.8,head:12.1,type:'Groundwater well',status:'Review',risk:76,ec:810,turbidity:9.4,update:'12 min ago',kind:'Synthetic',recharge:0.02},
+{id:'BD-KHL-003',name:'Khulna',district:'Khulna',lat:22.8456,lon:89.5403,depth:5.9,head:1.8,type:'Water quality',status:'Review',risk:81,ec:1450,turbidity:15.3,update:'31 min ago',kind:'Synthetic',recharge:0.09},
+{id:'BD-SYL-004',name:'Sylhet',district:'Sylhet',lat:24.8949,lon:91.8687,depth:3.4,head:9.3,type:'Groundwater well',status:'Online',risk:27,ec:270,turbidity:3.2,update:'5 min ago',kind:'Synthetic',recharge:0.03},
+{id:'BD-BAR-005',name:'Barishal',district:'Barishal',lat:22.701,lon:90.3535,depth:4.6,head:1.2,type:'Groundwater well',status:'Online',risk:39,ec:890,turbidity:12.3,update:'8 min ago',kind:'Synthetic',recharge:0.07},
+{id:'BD-RNG-006',name:'Rangpur',district:'Rangpur',lat:25.7439,lon:89.2752,depth:7.1,head:14.5,type:'Groundwater well',status:'Online',risk:35,ec:380,turbidity:5.8,update:'6 min ago',kind:'Synthetic',recharge:0.02},
+{id:'BD-MYM-007',name:'Mymensingh',district:'Mymensingh',lat:24.7471,lon:90.4203,depth:6.3,head:8.7,type:'Recharge site',status:'Online',risk:34,ec:430,turbidity:8.1,update:'4 min ago',kind:'Synthetic',recharge:0.05},
+{id:'BD-COM-008',name:'Cumilla',district:'Cumilla',lat:23.4607,lon:91.1809,depth:10.2,head:3.4,type:'Groundwater well',status:'Online',risk:49,ec:560,turbidity:7.1,update:'9 min ago',kind:'Synthetic',recharge:0.03},
+{id:'BD-FAR-009',name:'Faridpur',district:'Faridpur',lat:23.607,lon:89.8429,depth:8.1,head:4.1,type:'Groundwater well',status:'Online',risk:47,ec:610,turbidity:9.3,update:'7 min ago',kind:'Synthetic',recharge:0.03},
+{id:'BD-JAS-010',name:'Jashore',district:'Jashore',lat:23.1664,lon:89.2081,depth:6.7,head:3.2,type:'Water quality',status:'Review',risk:69,ec:1280,turbidity:18.4,update:'44 min ago',kind:'Synthetic',recharge:0.04},
+{id:'BD-BOG-011',name:'Bogura',district:'Bogura',lat:24.8465,lon:89.3773,depth:9.9,head:8.0,type:'Groundwater well',status:'Offline',risk:45,ec:470,turbidity:7.5,update:'3 hr ago',kind:'Synthetic',recharge:0.01},
+{id:'BD-COX-012',name:'Cox’s Bazar',district:'Cox’s Bazar',lat:21.4272,lon:92.0058,depth:3.8,head:1.1,type:'Water quality',status:'Online',risk:72,ec:1380,turbidity:11.2,update:'11 min ago',kind:'Synthetic',recharge:0.02}
+];
+const candidateAreas=[
+{area:'Barind tract',concern:'Seasonal groundwater decline',direction:'Groundwater baseline + recharge feasibility',confidence:'Low',tag:'review'},
+{area:'Southwest coastal belt',concern:'Salinity and dry-season scarcity',direction:'Source quality + freshwater storage study',confidence:'Low',tag:'risk'},
+{area:'Urban Dhaka catchments',concern:'Rapid runoff and limited open space',direction:'Stormwater pre-treatment + infiltration pilot',confidence:'Medium-low',tag:'review'},
+{area:'Sylhet floodplain',concern:'High seasonal surface water',direction:'Flood-safe storage and aquifer assessment',confidence:'Low',tag:'review'}
+];
+let state={stations:clone(baseStations),activePage:'overview',mapLayer:'depth',apiBase:'http://localhost:8000/api',selectedStation:'BD-DHK-001'};
+let maps={},mapReady={},useSatellite=false,useTerrain=false,toastTimer;
+
+function toast(message){const t=$('toast');t.textContent=message;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3200)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function saveLocal(){try{localStorage.setItem(STORE_KEY,JSON.stringify({stations:state.stations,apiBase:state.apiBase,updated:new Date().toISOString()}))}catch(e){}}
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');if(s&&Array.isArray(s.stations)){state.stations=s.stations;state.apiBase=s.apiBase||state.apiBase}}catch(e){}}
+function stationStatus(st){return st.status||'Online'}
+function mean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0}
+
+function setPage(page){
+  state.activePage=page;
+  document.querySelectorAll('.section-view').forEach(v=>v.classList.toggle('active',v.id==='page-'+page));
+  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  $('sidebar').classList.remove('open');
+  const names={overview:'National water intelligence',groundwater:'Groundwater explorer',surface:'Rivers & floodwater',mar:'MAR site planner',stations:'Monitoring stations',subsurface:'3D aquifer profile',recommendations:'Project recommendations',data:'Data & integration'};
+  document.title='AZNUR | '+(names[page]||'Water Intelligence');
+  if(page==='groundwater'&&!maps.mapGw)setupMap('mapGw');
+  if(page==='surface'&&!maps.mapSurface)setupMap('mapSurface');
+  if(['overview','groundwater','surface'].includes(page)){setTimeout(()=>Object.values(maps).forEach(m=>{try{m.resize()}catch(e){}}),140)}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.goto)));
+$('mobileMenu').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
+
+function downloadBlob(name,content,type='application/json'){
+  const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportAll(){
+  const payload={application:'AZNUR Bangladesh Water Intelligence prototype',schema_version:1,mode:'synthetic_demo',exported_at:new Date().toISOString(),warning:'Stations and readings are synthetic demonstration data, not official measurements.',stations:state.stations,candidate_areas:candidateAreas,api_base:state.apiBase};
+  downloadBlob('aznur-water-intelligence-demo.json',JSON.stringify(payload,null,2));
+  toast('Demo data exported as JSON.');
+}
+$('exportBtn').addEventListener('click',exportAll);
+$('dataExport').addEventListener('click',exportAll);
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const data=JSON.parse(await f.text());
+    const incoming=Array.isArray(data)?data:data.stations;
+    if(!Array.isArray(incoming))throw new Error('JSON needs a stations array.');
+    for(const st of incoming){
+      if(!st.id||!Number.isFinite(Number(st.lat))||!Number.isFinite(Number(st.lon)))throw new Error('Each station needs an id, lat and lon.');
+      if(Number(st.lat)<20||Number(st.lat)>27||Number(st.lon)<88||Number(st.lon)>93)throw new Error('Station coordinates must be within Bangladesh bounds.');
+    }
+    state.stations=incoming.map(s=>({...s,lat:Number(s.lat),lon:Number(s.lon),depth:Number(s.depth||0),risk:Number(s.risk||0),kind:s.kind||'Imported'}));
+    if(data.api_base)state.apiBase=data.api_base;
+    saveLocal();renderAll();updateMapSources();
+    toast('Imported '+incoming.length+' station records. Validate source and units before use.');
+  }catch(err){toast('Import failed: '+err.message)}
+  e.target.value='';
+});
+
+/* ---------- Map ---------- */
+function mapFeatureCollection(stations=state.stations){
+  return {type:'FeatureCollection',features:stations.map(s=>({
+    type:'Feature',
+    geometry:{type:'Point',coordinates:[Number(s.lon),Number(s.lat)]},
+    properties:{id:s.id,name:s.name,district:s.district||s.name,depth:Number(s.depth||0),head:Number(s.head||0),risk:Number(s.risk||0),ec:Number(s.ec||0),turbidity:Number(s.turbidity||0),status:stationStatus(s),type:s.type||'Observation',kind:s.kind||'Synthetic',recharge:Number(s.recharge||0)}
+  }))}
+}
+function styleForMap(mode){return mode==='satellite'?satelliteStyle:streetStyle}
+function setupMap(id){
+  if(!window.maplibregl){
+    const node=$(id);
+    if(node)node.innerHTML='<div style="padding:24px;color:var(--dim);font-size:12px">Map library could not be loaded. Check the internet connection and reload.</div>';
+    return null;
+  }
+  const map=new maplibregl.Map({container:id,style:streetStyle,center:[90.25,23.75],zoom:5.85,pitch:15,bearing:0,attributionControl:true,antialias:true});
+  map.addControl(new maplibregl.NavigationControl({showCompass:true,visualizePitch:true}),'top-right');
+  map.on('load',()=>{mapReady[id]=true;addMapLayers(map,id)});
+  map.on('error',e=>{if(e&&e.error&&String(e.error.message||'').includes('401'))console.warn('Map tile response',e.error.message)});
+  maps[id]=map;
+  return map;
+}
+function addMapLayers(map,id){
+  try{
+    if(map.getSource('water-stations'))map.removeSource('water-stations');
+    map.addSource('water-stations',{type:'geojson',data:mapFeatureCollection()});
+    map.addLayer({id:'water-heat',type:'heatmap',source:'water-stations',maxzoom:10,layout:{visibility:(id==='map'||id==='mapGw')?'visible':'none'},paint:{'heatmap-weight':['interpolate',['linear'],['get','depth'],0,0.1,22,1],'heatmap-intensity':['interpolate',['linear'],['zoom'],3,0.6,8,1.8],'heatmap-radius':['interpolate',['linear'],['zoom'],3,16,8,38],'heatmap-opacity':0.68,'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(37,99,235,0)',0.15,'#38bdf8',0.35,'#a3e635',0.55,'#facc15',0.8,'#f97316',1,'#dc2626']}});
+    map.addLayer({id:'water-station-circles',type:'circle',source:'water-stations',paint:{'circle-radius':['interpolate',['linear'],['zoom'],4,4.5,8,7],'circle-color':['case',['==',['get','status'],'Review'],'#f59e0b',['==',['get','status'],'Offline'],'#9ca3af',['interpolate',['linear'],['get','depth'],0,'#0284c7',5,'#06b6d4',10,'#84cc16',15,'#f59e0b',22,'#dc2626']],'circle-stroke-color':'#ffffff','circle-stroke-width':1.5,'circle-opacity':0.95}});
+    map.addLayer({id:'water-station-labels',type:'symbol',source:'water-stations',minzoom:7,layout:{'text-field':['get','district'],'text-size':10,'text-offset':[0,1.2],'text-anchor':'top','text-font':['Open Sans Regular','Arial Unicode MS Regular']},paint:{'text-color':'#202020','text-halo-color':'#ffffff','text-halo-width':1.3}});
+    map.on('click','water-station-circles',e=>{const f=e.features&&e.features[0];if(!f)return;showStationPopup(map,f);state.selectedStation=f.properties.id;updateSelectedDetails(f.properties)});
+    map.on('mouseenter','water-station-circles',()=>map.getCanvas().style.cursor='pointer');
+    map.on('mouseleave','water-station-circles',()=>map.getCanvas().style.cursor='');
+    if(id==='mapSurface'){
+      map.addSource('capture-sites',{type:'geojson',data:{type:'FeatureCollection',features:[
+        {type:'Feature',geometry:{type:'Point',coordinates:[90.40,23.83]},properties:{name:'Urban capture concept'}},
+        {type:'Feature',geometry:{type:'Point',coordinates:[89.9,23.4]},properties:{name:'Floodplain investigation concept'}},
+        {type:'Feature',geometry:{type:'Point',coordinates:[91.8,24.8]},properties:{name:'Sylhet floodplain concept'}}
+      ]}});
+      map.addLayer({id:'capture-circles',type:'circle',source:'capture-sites',layout:{visibility:'none'},paint:{'circle-radius':8,'circle-color':'#16a34a','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+      map.on('click','capture-circles',e=>{
+        const p=e.features[0].properties;
+        new maplibregl.Popup().setLngLat(e.lngLat)
+          .setHTML('<div class="map-popup-title">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--dim)">Concept only. Site investigation required.</div>')
+          .addTo(map);
+      });
+    }
+    if(id==='mapGw'){
+      map.setLayoutProperty('water-heat','visibility','visible');
+    }
+    ensureTerrain(map);
+  }catch(err){console.warn('Unable to add map layers',id,err)}
+}
+function ensureTerrain(map){try{if(!map.getSource('elevation-dem'))map.addSource('elevation-dem',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,encoding:'terrarium',maxzoom:15})}catch(e){}}
+function resetStyleForAll(mode){
+  useSatellite=mode==='satellite';
+  Object.entries(maps).forEach(([id,map])=>{
+    try{
+      map.setStyle(styleForMap(mode));
+      map.once('style.load',()=>{
+        addMapLayers(map,id);
+        if(useTerrain)ensureTerrain(map);
+        if(useTerrain){try{map.setTerrain({source:'elevation-dem',exaggeration:1.25});map.setPitch(58);map.setBearing(-10)}catch(e){}}
+        else{try{map.setTerrain(null);map.setPitch(15);map.setBearing(0)}catch(e){}}
+      });
+    }catch(e){}
+  });
+  document.querySelectorAll('#basemapToggle button').forEach(b=>b.classList.toggle('active',b.dataset.basemap===mode));
+  document.querySelectorAll('#gwMetricToggle button').forEach(b=>b.classList.remove('active'));
+}
+function toggleTerrain(on){
+  useTerrain=on;
+  Object.entries(maps).forEach(([id,map])=>{
+    try{
+      if(on){ensureTerrain(map);if(map.isStyleLoaded()){if(!map.getSource('elevation-dem'))ensureTerrain(map);map.setTerrain({source:'elevation-dem',exaggeration:1.25});map.setPitch(58);map.setBearing(-10)}}
+      else{map.setTerrain(null);map.setPitch(15);map.setBearing(0)}
+    }catch(e){console.warn('Terrain mode unavailable',e)}
+  });
+  document.querySelectorAll('#basemapToggle button').forEach(b=>b.classList.toggle('active',b.dataset.basemap===(on?'terrain':useSatellite?'satellite':'street')));
+  if(on)toast('3D terrain enabled where elevation tiles are available.');
+}
+function showStationPopup(map,f){
+  const p=f.properties;
+  const html='<div class="map-popup-title">'+esc(p.name)+'</div>'
+    +'<div class="map-popup-row"><span>Station ID</span><b>'+esc(p.id)+'</b></div>'
+    +'<div class="map-popup-row"><span>Depth to water</span><b>'+Number(p.depth).toFixed(1)+' m</b></div>'
+    +'<div class="map-popup-row"><span>Conductivity</span><b>'+Number(p.ec).toFixed(0)+' µS/cm</b></div>'
+    +'<div class="map-popup-row"><span>Sample status</span><b>'+esc(p.status)+'</b></div>'
+    +'<div class="map-popup-note">Synthetic demo data. Not an actual monitoring station.</div>';
+  new maplibregl.Popup({offset:10,closeButton:true}).setLngLat(f.geometry.coordinates).setHTML(html).addTo(map);
+}
+function updateMapSources(){Object.entries(maps).forEach(([id,map])=>{try{if(map.getSource('water-stations'))map.getSource('water-stations').setData(mapFeatureCollection())}catch(e){}});renderAll()}
+
+$('basemapToggle').addEventListener('click',e=>{
+  const b=e.target.closest('[data-basemap]');if(!b)return;
+  if(b.dataset.basemap==='terrain'){toggleTerrain(!useTerrain);return}
+  useTerrain=false;resetStyleForAll(b.dataset.basemap);
+  $('mapCredit').textContent=b.dataset.basemap==='satellite'?'Tiles © Esri · demo stations':'OpenFreeMap · demo stations';
+});
+
+$('gwMetricToggle').addEventListener('click',e=>{
+  const b=e.target.closest('[data-metric]');if(!b)return;
+  document.querySelectorAll('#gwMetricToggle button').forEach(x=>x.classList.toggle('active',x===b));
+  $('gwMapTitle').textContent=b.dataset.metric==='depth'?'Depth to water table':b.dataset.metric==='head'?'Hydraulic head (demo)':'Screening risk index';
+  $('gwLegendName').textContent=b.dataset.metric==='depth'?'Meters below ground':b.dataset.metric==='head'?'Illustrative head (m)':'Illustrative risk index';
+  if(mapReady.mapGw){
+    const m=maps.mapGw;
+    try{
+      m.setLayoutProperty('water-heat','visibility',b.dataset.metric==='risk'?'visible':'none');
+      m.setPaintProperty('water-station-circles','circle-color',
+        b.dataset.metric==='depth'?['interpolate',['linear'],['get','depth'],0,'#2563eb',5,'#06b6d4',10,'#84cc16',15,'#f59e0b',22,'#dc2626']:
+        b.dataset.metric==='head'?['interpolate',['linear'],['get','head'],0,'#dc2626',5,'#f59e0b',10,'#84cc16',15,'#2563eb']:
+        ['interpolate',['linear'],['get','risk'],0,'#16a34a',40,'#a3e635',60,'#f59e0b',80,'#dc2626',100,'#991b1b']
+      );
+    }catch(e){}
+  }
+});
+
+$('surfaceToggle').addEventListener('click',e=>{
+  const b=e.target.closest('[data-layer]');if(!b)return;
+  document.querySelectorAll('#surfaceToggle button').forEach(x=>x.classList.toggle('active',x===b));
+  const m=maps.mapSurface;
+  if(m&&mapReady.mapSurface){
+    try{
+      m.setLayoutProperty('capture-circles','visibility',b.dataset.layer==='capture'?'visible':'none');
+      m.setLayoutProperty('water-heat','visibility',b.dataset.layer==='flood'?'visible':'none');
+      m.setLayoutProperty('water-station-circles','visibility','visible');
+      $('surfaceLayerName').textContent=b.dataset.layer==='capture'?'MAR / capture concepts':b.dataset.layer==='flood'?'Illustrative flood-pressure layer':'River and canal context';
+      $('surfaceLayerDesc').textContent=b.dataset.layer==='capture'?'Concept markers only. Suitability is not confirmed.':b.dataset.layer==='flood'?'Risk intensity uses synthetic demo values, not a flood forecast.':'Basemap river network plus illustrative monitoring locations.';
+    }catch(e){}
+  }
+});
+
+/* ---------- Renderers ---------- */
+function renderStatusList(){
+  const order=state.stations.slice().sort((a,b)=>({Review:0,Offline:1,Online:2}[stationStatus(a)]-({Review:0,Offline:1,Online:2}[stationStatus(b)])));
+  $('stationStatusList').innerHTML=order.slice(0,4).map(s=>`
+    <div class="station-row">
+      <span class="station-state ${stationStatus(s)==='Review'?'warn':stationStatus(s)==='Offline'?'off':''}"></span>
+      <div class="station-info"><strong>${esc(s.name)}</strong><small>${esc(s.id)} · ${esc(s.type||'Observation')}</small></div>
+      <div class="station-reading">${Number(s.depth||0).toFixed(1)} m<small>depth below ground</small></div>
+    </div>
+  `).join('')+`<div style="padding:8px 14px;text-align:right"><button class="mini-link" data-goto="stations">Open station registry ↗</button></div>`;
+  $('stationCountHint').textContent=state.stations.length+' illustrative stations';
+  document.querySelectorAll('#stationStatusList [data-goto]').forEach(b=>b.addEventListener('click',()=>setPage('stations')));
+}
+function renderTrend(){
+  const range=Number($('trendRange').value||12);
+  const st=state.stations.find(s=>s.id===state.selectedStation)||state.stations[0];
+  $('trendStationName').textContent=st.name+' · synthetic values';
+  const pts=Array.from({length:range},(_,i)=>Number((Math.max(1,st.depth+(Math.sin(i*.8)*1.4)+(i-range/2)*.16)).toFixed(1)));
+  const W=500,H=150,L=40,R=10,T=12,B=25;
+  const min=Math.floor(Math.min(...pts)-1),max=Math.ceil(Math.max(...pts)+1);
+  const x=i=>L+i*(W-L-R)/(pts.length-1||1);
+  const y=v=>T+(max-v)*(H-T-B)/(max-min||1);
+  let grid='';
+  for(let i=0;i<4;i++){
+    const v=min+(max-min)*i/3;
+    grid+=`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" style="stroke:var(--line);stroke-width:1"/><text x="${L-7}" y="${y(v)+3}" style="fill:var(--faint);font-size:9px" text-anchor="end">${v.toFixed(0)}</text>`;
+  }
+  const line=pts.map((v,i)=>(i?'L':'M')+x(i)+' '+y(v)).join(' ');
+  const area=line+` L ${x(pts.length-1)} ${H-B} L ${x(0)} ${H-B} Z`;
+  let labels='';
+  pts.forEach((v,i)=>{
+    if(i===0||i===pts.length-1||i===Math.floor((pts.length-1)/2)){
+      labels+=`<text x="${x(i)}" y="${H-7}" style="fill:var(--faint);font-size:9px" text-anchor="middle">${['Jan','Mar','May','Jul','Sep','Nov'][Math.round(i/(pts.length-1||1)*5)]||''}</text>`;
+    }
+  });
+  $('trendChart').innerHTML=grid
+    +`<path d="${area}" style="fill:var(--accent);opacity:.08"/>`
+    +`<path d="${line}" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>`
+    +pts.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" style="fill:var(--accent)"/>`).join('')
+    +labels
+    +`<line x1="${L}" y1="${y(st.depth)}" x2="${W-R}" y2="${y(st.depth)}" style="stroke:var(--warn);stroke-dasharray:4 4;stroke-width:1.3"/>`;
+}
+$('trendRange').addEventListener('change',renderTrend);
+
+function renderCandidates(){
+  $('candidateTable').innerHTML=candidateAreas.map(a=>`<tr><td><strong>${esc(a.area)}</strong></td><td>${esc(a.concern)}</td><td>${esc(a.direction)}</td><td><span class="status-label ${a.tag==='risk'?'risk':'review'}">${esc(a.confidence)}</span></td></tr>`).join('');
+}
+function renderActivity(){
+  $('activityFeed').innerHTML=`
+    <div class="activity"><div class="activity-mark">↻</div><div><strong>Demo dataset initialized</strong><p>${state.stations.length} synthetic station records available in this browser.</p></div><time>Local</time></div>
+    <div class="activity"><div class="activity-mark">◇</div><div><strong>MAR screening module ready</strong><p>Estimate infiltration volume and flag data gaps.</p></div><time>Local</time></div>
+    <div class="activity"><div class="activity-mark">↔</div><div><strong>Backend not connected</strong><p>Configure an API URL in Data &amp; integration.</p></div><time>Local</time></div>`;
+}
+function renderStationTable(){
+  const filter=$('stationFilter').value;
+  const arr=state.stations.filter(s=>filter==='all'||stationStatus(s)===filter);
+  $('allStationsTable').innerHTML=arr.map(s=>`
+    <tr data-station="${esc(s.id)}">
+      <td><strong>${esc(s.id)}</strong></td>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.type||'Observation')}</td>
+      <td class="mono">${Number(s.depth||0).toFixed(1)} m</td>
+      <td>${esc(s.update||'Local entry')}</td>
+      <td><span class="status-label ${stationStatus(s)==='Review'?'review':stationStatus(s)==='Offline'?'risk':''}">${esc(stationStatus(s))}</span></td>
+      <td><span class="tag">${esc(s.kind||'Synthetic')}</span></td>
+    </tr>`).join('')||'<tr><td colspan="7" class="cell-muted">No stations match this filter.</td></tr>';
+  document.querySelectorAll('#allStationsTable tr[data-station]').forEach(tr=>tr.addEventListener('click',()=>{
+    const s=state.stations.find(x=>x.id===tr.dataset.station);
+    if(s){
+      state.selectedStation=s.id;setPage('overview');
+      const m=maps.map;
+      if(m){
+        m.flyTo({center:[s.lon,s.lat],zoom:8.5,duration:800});
+        const feat=mapFeatureCollection([s]).features[0];
+        setTimeout(()=>showStationPopup(m,feat),850);
+      }
+      updateSelectedDetails(s);renderTrend();
+    }
+  }));
+  $('stTotal').textContent=state.stations.length;
+  $('stOnline').textContent=state.stations.filter(s=>stationStatus(s)==='Online').length;
+  $('stReview').textContent=state.stations.filter(s=>stationStatus(s)==='Review').length;
+  $('metricStations').textContent=state.stations.length;
+  $('metricReview').textContent=state.stations.filter(s=>stationStatus(s)==='Review').length;
+}
+$('stationFilter').addEventListener('change',renderStationTable);
+
+function updateSelectedDetails(p){
+  const st=state.stations.find(s=>s.id===(p.id||p.station_id))||p;
+  $('gwDetails').innerHTML=`
+    <div class="result-list">
+      <div class="result-row"><span>Location</span><strong>${esc(st.name||st.district)}</strong></div>
+      <div class="result-row"><span>Station ID</span><strong>${esc(st.id||'n/a')}</strong></div>
+      <div class="result-row"><span>Depth to water</span><strong>${Number(st.depth||0).toFixed(1)} m</strong></div>
+      <div class="result-row"><span>Illustrative head</span><strong>${Number(st.head||0).toFixed(1)} m</strong></div>
+      <div class="result-row"><span>Conductivity</span><strong>${Number(st.ec||0).toFixed(0)} µS/cm</strong></div>
+      <div class="result-row"><span>Quality flag</span><strong>${esc(st.status||'Unverified')}</strong></div>
+      <div class="result-row"><span>Data source</span><strong>${esc(st.kind||'Synthetic')}</strong></div>
+    </div>
+    <div class="screening-box">
+      <strong>Interpretation limitation</strong>
+      <p>These values are synthetic. They are not a measurement of local groundwater conditions. Confirm surveyed ground elevation, reference datum, borehole construction, screen interval and laboratory quality before interpretation.</p>
+    </div>`;
+}
+function renderGroundwaterMetrics(){
+  const vals=state.stations.map(s=>Number(s.depth)||0);
+  $('gwCount').textContent=state.stations.length;
+  $('gwMean').textContent=mean(vals).toFixed(1)+' m';
+  $('gwMax').textContent=Math.max(...vals).toFixed(1)+' m';
+}
+function renderFilterTrain(){
+  const t=Number($('marTurbidity').value)||0;
+  const tds=Number($('marTds').value)||0;
+  const ec=Number($('marEc').value)||0;
+  const src=$('marSource').value;
+  const method=$('marMethod').value;
+  const quality=$('marQuality').value;
+  const items=[
+    ['Intake screening','Debris screen and controlled first-flush diversion.'],
+    ['Sediment removal',t>20?'Settling or a larger sediment forebay is a priority; perform jar and settling tests.':'Provide a maintainable settling and sediment-removal stage.'],
+    ['Media filtration',t>50?'Pilot test staged gravel and sand filtration; high solids may require multi-stage treatment.':'Use graded washed sand and gravel, with accessible cleaning and flow monitoring.']
+  ];
+  if(tds>800||ec>1200)items.push(['Salinity / dissolved solids','Elevated conductivity or TDS: investigate source and aquifer compatibility; sand and ordinary biochar will not remove dissolved salts.']);
+  if(src==='treated')items.push(['Wastewater-specific barriers','Require treatment-process validation, disinfection requirements, pathogen and micropollutant testing, and regulatory approval.']);
+  if(tds<=800&&ec<=1200)items.push(['Tested biochar media','Consider a replaceable biochar stage only after a contaminant-specific column test and leaching assessment.']);
+  items.push([method==='well'?'Recharge well safeguards':'Recharge basin safeguards',method==='well'?'Requires stricter pretreatment, clogging controls, injection compatibility review and a well rehabilitation plan.':'Measure infiltration performance, manage clogging and confirm unsaturated-zone and aquifer conditions.']);
+  if(quality!=='pass')items.push(['Laboratory hold point','Do not treat this screening as authorization to recharge. Obtain a complete source-water and receiving-aquifer lab package.']);
+  $('filterTrain').innerHTML=items.map((it,i)=>`<div class="activity"><div class="activity-mark">${i+1}</div><div><strong>${esc(it[0])}</strong><p>${esc(it[1])}</p></div></div>`).join('');
+}
+function calculateMAR(){
+  const val=id=>Math.max(0,Number($(id).value)||0);
+  const area=val('marArea'),rate=val('marRate'),days=val('marDays'),storage=val('marStorage');
+  const turb=val('marTurbidity'),tds=val('marTds'),ec=val('marEc');
+  const theoretical=area*10000*rate*days;
+  const volume=Math.min(theoretical,storage);
+  const quality=$('marQuality').value;
+  const alerts=[];
+  let level='REVIEW REQUIRED',cls='review';
+  if(quality==='fail'){level='HOLD';cls='risk';alerts.push('Known contamination concern selected. Do not recharge until the source and aquifer risks are resolved.')}
+  if(quality!=='pass')alerts.push('Laboratory status is incomplete. This tool cannot verify contaminant safety.');
+  if(turb>50)alerts.push('High turbidity heuristic: additional settling and treatment assessment is needed before any recharge trial.');
+  else if(turb>20)alerts.push('Elevated turbidity heuristic: size pretreatment from measured solids and pilot testing.');
+  if(tds>1000||ec>1500)alerts.push('Elevated dissolved-solids or conductivity flag. Assess salinity and geochemical compatibility; filtration with sand or ordinary biochar is not desalination.');
+  if($('marSource').value==='treated')alerts.push('Treated wastewater requires validated treatment, pathogen barriers, monitoring and formal approval.');
+  if($('marMethod').value==='well')alerts.push('Recharge well selected: obtain aquifer-specific compatibility checks and an engineering clogging-control plan.');
+  if(rate===0||area===0||days===0)alerts.push('Enter a non-zero tested infiltration rate, area and duration to estimate potential volume.');
+  if(!alerts.length)alerts.push('No automatic screening flag triggered by these inputs. This is not a finding that the water is safe or the site suitable.');
+  if(quality==='pass'&&turb<=20&&tds<=1000&&ec<=1500){level='ENGINEERING REVIEW';cls='review'}
+  if(quality==='fail'||turb>50||tds>1800||ec>2500){level='HOLD FOR ASSESSMENT';cls='risk'}
+  $('marStatus').className='status-label '+cls;
+  $('marStatus').textContent=level;
+  $('marVolume').textContent=Math.round(volume).toLocaleString('en-US');
+  $('marProgress').style.width=(storage>0?Math.min(100,volume/storage*100):0)+'%';
+  $('marResults').innerHTML=`
+    <div class="result-row"><span>Theoretical infiltration</span><strong>${Math.round(theoretical).toLocaleString('en-US')} m³</strong></div>
+    <div class="result-row"><span>Storage-capped volume</span><strong>${Math.round(volume).toLocaleString('en-US')} m³</strong></div>
+    <div class="result-row"><span>Share of estimated storage</span><strong>${storage?Math.min(100,volume/storage*100).toFixed(1):0}%</strong></div>
+    <div class="result-row"><span>Source / method</span><strong>${esc($('marSource').selectedOptions[0].text)} / ${esc($('marMethod').selectedOptions[0].text)}</strong></div>`;
+  $('marWarnings').innerHTML=alerts.map((a,i)=>`<div style="font-size:10.5px;line-height:1.45;padding:7px 9px;border-radius:var(--radius);background:var(--active);border:1px solid var(--line);border-left:3px solid ${level==='HOLD FOR ASSESSMENT'?'var(--bad)':'var(--accent)'};color:var(--dim)">${i+1}. ${esc(a)}</div>`).join('');
+  renderFilterTrain();
+  return {source:$('marSource').value,method:$('marMethod').value,turbidity_NTU:turb,tds_mg_L:tds,electrical_conductivity_uS_cm:ec,area_hectares:area,tested_infiltration_m_day:rate,operating_days:days,estimated_aquifer_storage_m3:storage,theoretical_infiltration_m3:theoretical,storage_capped_volume_m3:volume,lab_status:quality,screening_status:level,flags:alerts,notes:$('marNotes').value,disclaimer:'Indicative screening only. Not a treatment design, permit, safety certification, or operational instruction.'};
+}
+['marSource','marMethod','marTurbidity','marTds','marEc','marArea','marRate','marDays','marStorage','marQuality','marNotes'].forEach(id=>$(id).addEventListener('input',calculateMAR));
+$('resetMAR').addEventListener('click',()=>{
+  const vals={marSource:'river',marMethod:'basin',marTurbidity:18,marTds:420,marEc:650,marArea:2,marRate:.12,marDays:30,marStorage:65000,marQuality:'unknown',marNotes:''};
+  Object.entries(vals).forEach(([k,v])=>$(k).value=v);
+  calculateMAR();toast('MAR example restored.');
+});
+$('marExport').addEventListener('click',()=>downloadBlob('mar-screening-assessment.json',JSON.stringify({exported_at:new Date().toISOString(),assessment:calculateMAR()},null,2)));
+
+$('routeCalc').addEventListener('click',()=>{
+  const flow=Math.max(0,Number($('riverFlow').value)||0);
+  const reserve=Math.min(100,Math.max(0,Number($('downstreamReserve').value)||0));
+  const channel=Math.max(0,Number($('channelCapacity').value)||0);
+  const cap=Math.max(0,Number($('captureCapacity').value)||0);
+  const available=Math.max(0,flow*(1-reserve/100));
+  const excess=Math.max(0,flow-channel);
+  const divert=Math.min(available,excess,cap);
+  $('routeResult').innerHTML=`<strong>Indicative screening diversion: ${divert.toFixed(1)} m³/s</strong><p>Estimated flow left for downstream needs after the entered reserve: ${available.toFixed(1)} m³/s. Flow above the entered channel capacity: ${excess.toFixed(1)} m³/s. Candidate route capacity: ${cap.toFixed(1)} m³/s. The smallest applicable limit controls this arithmetic only. This is not a hydraulic simulation or an instruction to open a gate.</p>`;
+  toast('Routing screen recalculated. Validate with a hydraulic model and authorities.');
+});
+
+$('profileType').addEventListener('change',()=>{
+  const type=$('profileType').value,graphic=$('subsurfaceGraphic');
+  if(type==='confined'){
+    graphic.style.background='linear-gradient(180deg,#f3e7c5 0 16%,#8f9c91 16% 29%,#477c98 29% 63%,#a8ada1 63% 73%,#648aa3 73% 100%)';
+    graphic.querySelector('.waterline-label').textContent='Illustrative potentiometric level';
+    graphic.querySelector('.layer-label.l1').textContent='Upper low-permeability layer';
+    graphic.querySelector('.layer-label.l2').textContent='Confined water-bearing layer';
+    graphic.querySelector('.layer-label.l3').textContent='Lower confining layer';
+    $('profileLocation').textContent='Conceptual confined aquifer';
+  } else if(type==='clay'){
+    graphic.style.background='linear-gradient(180deg,#f3e7c5 0 16%,#b7a079 16% 47%,#b0a58d 47% 72%,#8c816b 72% 100%)';
+    graphic.querySelector('.waterline-label').textContent='Water table uncertain';
+    graphic.querySelector('.layer-label.l1').textContent='Fine-grained surface soil';
+    graphic.querySelector('.layer-label.l2').textContent='Clay / silt layer';
+    graphic.querySelector('.layer-label.l3').textContent='Aquifer requires investigation';
+    $('profileLocation').textContent='Conceptual clay-dominated site';
+  } else {
+    graphic.style.background='linear-gradient(180deg,#f3e7c5 0 16%,#d7c4a0 16% 28%,#9ec8b2 28% 34%,#7da6be 34% 70%,#477c98 70% 100%)';
+    graphic.querySelector('.waterline-label').textContent='Illustrative water table';
+    graphic.querySelector('.layer-label.l1').textContent='Unsaturated zone';
+    graphic.querySelector('.layer-label.l2').textContent='Saturated sand / gravel';
+    graphic.querySelector('.layer-label.l3').textContent='Deeper geological layer';
+    $('profileLocation').textContent='Conceptual unconfined aquifer';
+  }
+  const note=type==='confined'?'Confined systems may respond to pressure changes. Do not use an unconfined water-table interpretation; characterize confining units and potentiometric head.':
+    type==='clay'?'Fine-grained layers can restrict vertical infiltration. Investigate continuity, cracks, perched water, drainage and deeper aquifer conditions before considering MAR.':
+    'In an unconfined aquifer, recharge can raise the water table and pumping can create a local cone of depression. Measure seasonal levels and storage parameters.';
+  $('profileNotes').innerHTML=`<p style="font-size:11px;color:var(--dim);margin:0 0 12px;line-height:1.55">${note}</p>
+    <div class="result-list">
+      <div class="result-row"><span>Water table / head</span><strong>Needs surveyed measurement</strong></div>
+      <div class="result-row"><span>Recharge pathway</span><strong>${type==='clay'?'Potentially restricted':'Site-specific permeability'}</strong></div>
+      <div class="result-row"><span>Storage behaviour</span><strong>${type==='confined'?'Storativity':'Specific yield'}</strong></div>
+      <div class="result-row"><span>Validation</span><strong>Borehole and aquifer tests</strong></div>
+    </div>`;
+});
+$('downloadProfile').addEventListener('click',()=>downloadBlob('conceptual-aquifer-profile.txt',
+  'AZNUR Groundwater Intelligence\nConceptual profile: '+$('profileType').selectedOptions[0].text+'\n\nThis is a schematic educational section, not mapped geology. Replace with surveyed ground elevations, borehole lithology, screened intervals, measured groundwater levels, aquifer test results and lab water chemistry.\n'));
+
+function renderProjects(){
+  $('projectCards').innerHTML=candidateAreas.map((a,i)=>`
+    <article class="card">
+      <div class="card-head">
+        <div><div class="card-title">${esc(a.area)}</div><div class="card-sub">Candidate concept ${String(i+1).padStart(2,'0')}</div></div>
+        <span class="status-label ${a.tag==='risk'?'risk':'review'}">${esc(a.confidence)}</span>
+      </div>
+      <div class="card-body">
+        <div class="subhead">Observed question</div>
+        <p style="font-size:11px;color:var(--dim);margin:0 0 12px;line-height:1.55">${esc(a.concern)}</p>
+        <div class="subhead">Possible study direction</div>
+        <p style="font-size:11px;color:var(--dim);margin:0 0 12px;line-height:1.55">${esc(a.direction)}</p>
+        <div class="result-list">
+          <div class="result-row"><span>Field dataset</span><strong>Not attached</strong></div>
+          <div class="result-row"><span>Cost estimate</span><strong>Not estimated</strong></div>
+          <div class="result-row"><span>Approval status</span><strong>Not reviewed</strong></div>
+        </div>
+        <button class="btn wide" style="margin-top:12px" data-project="${i}">Create survey checklist</button>
+      </div>
+    </article>`).join('');
+  document.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',()=>{
+    const a=candidateAreas[Number(b.dataset.project)];
+    downloadBlob('survey-checklist-'+a.area.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.txt',
+      `Preliminary survey checklist: ${a.area}\n\n1. Confirm land access and responsible agencies.\n2. Survey groundwater level and elevation datum.\n3. Compile borehole lithology and aquifer tests.\n4. Sample source and receiving groundwater chemistry.\n5. Survey river / canal cross-sections where relevant.\n6. Assess environmental flow, flood risk and downstream effects.\n7. Test pilot treatment media and infiltration performance.\n8. Prepare a concept design, cost estimate and maintenance plan.\n9. Obtain formal review and approvals before implementation.\n\nConcept direction: ${a.direction}\nStatus: candidate only, not an approved project.\n`);
+    toast('Survey checklist downloaded.');
+  }));
+}
+$('exportProjects').addEventListener('click',()=>downloadBlob('candidate-project-register.json',JSON.stringify({status:'illustrative_only',projects:candidateAreas,warning:'Not approved for engineering or operations.'},null,2)));
+
+function exportCsv(){
+  const cols=['id','name','district','lat','lon','type','depth','head','ec','turbidity','status','update','kind'];
+  const csv=[cols.join(','),...state.stations.map(s=>cols.map(k=>'"'+String(s[k]??'').replace(/"/g,'""')+'"').join(','))].join('\r\n');
+  downloadBlob('aznur-station-register.csv',csv,'text/csv;charset=utf-8');
+  toast('Station register exported as CSV.');
+}
+$('stationCsv').addEventListener('click',exportCsv);
+$('groundwaterExport').addEventListener('click',exportCsv);
+
+/* ---------- Modal ---------- */
+function openModal(){
+  $('modalBackdrop').classList.add('open');
+  $('newStationId').value='BD-DEMO-'+String(state.stations.length+1).padStart(3,'0');
+  $('newStationName').focus();
+}
+function closeModal(){$('modalBackdrop').classList.remove('open')}
+$('addStation').addEventListener('click',openModal);
+$('closeModal').addEventListener('click',closeModal);
+$('cancelModal').addEventListener('click',closeModal);
+$('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('globalSearch').focus()}
+});
+
+$('stationForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const id=$('newStationId').value.trim();
+  if(state.stations.some(s=>s.id===id)){toast('That station ID already exists.');return}
+  const st={id,name:$('newStationName').value.trim(),district:$('newStationName').value.trim(),lat:Number($('newStationLat').value),lon:Number($('newStationLon').value),type:$('newStationType').value,depth:Number($('newStationDepth').value),head:0,risk:0,ec:0,turbidity:0,status:'Offline',update:'Not connected',kind:'User entry',recharge:0};
+  if(!id||!st.name||!Number.isFinite(st.lat)||!Number.isFinite(st.lon)){toast('Please complete the station fields.');return}
+  if(st.lat<20||st.lat>27||st.lon<88||st.lon>93){toast('Coordinates are outside the Bangladesh range used by this prototype.');return}
+  state.stations.push(st);
+  saveLocal();closeModal();updateMapSources();
+  toast('Station added to this browser. No physical sensor is connected.');
+  setPage('stations');
+});
+
+/* ---------- Search ---------- */
+function findStationByQuery(q){const s=q.toLowerCase().trim();return state.stations.find(x=>[x.id,x.name,x.district,x.type].some(v=>String(v||'').toLowerCase().includes(s)))}
+$('globalSearch').addEventListener('input',()=>{
+  const q=$('globalSearch').value.trim();
+  const box=$('searchResult');
+  if(!q){box.classList.remove('show');return}
+  const s=findStationByQuery(q);
+  if(s){
+    box.innerHTML='Station match: <strong>'+esc(s.name)+'</strong> ('+esc(s.id)+'). <button class="mini-link" id="searchGo">Locate ↗</button>';
+    box.classList.add('show');
+    $('searchGo').onclick=()=>{
+      setPage('overview');
+      const m=maps.map;
+      if(m)m.flyTo({center:[s.lon,s.lat],zoom:8.2,duration:800});
+      state.selectedStation=s.id;
+      renderTrend();updateSelectedDetails(s);
+      box.classList.remove('show');
+    };
+  } else {
+    const pageNames=[['groundwater','groundwater'],['river','surface'],['flood','surface'],['mar','mar'],['recharge','mar'],['station','stations'],['aquifer','subsurface'],['3d','subsurface'],['project','recommendations'],['data','data']];
+    const hit=pageNames.find(x=>x[0].includes(q.toLowerCase()));
+    box.innerHTML=hit?'Open section: <strong>'+esc(hit[1])+'</strong> <button class="mini-link" id="searchPage">Open ↗</button>':'No local station or section match. Try Dhaka, Rajshahi, MAR, aquifer or station.';
+    box.classList.add('show');
+    if(hit)$('searchPage').onclick=()=>{setPage(hit[1]);box.classList.remove('show')};
+  }
+});
+
+/* ---------- Demo actions ---------- */
+$('refreshDemo').addEventListener('click',()=>{
+  state.stations=state.stations.map(s=>({...s,depth:Math.max(0,Number((s.depth+(Math.random()-.5)*.22).toFixed(1))),update:'just now'}));
+  saveLocal();updateMapSources();
+  toast('Synthetic readings refreshed. These are not live measurements.');
+});
+$('goMAR').addEventListener('click',()=>setPage('mar'));
+$('openSources').addEventListener('click',()=>setPage('data'));
+
+$('saveApi').addEventListener('click',()=>{
+  const url=$('apiBase').value.trim();
+  try{
+    const p=new URL(url);
+    if(!['http:','https:'].includes(p.protocol))throw new Error();
+    state.apiBase=url;saveLocal();
+    $('apiState').textContent='SAVED LOCALLY';
+    $('apiState').className='status-label review';
+    toast('API URL saved to this browser. Not connected yet.');
+  }catch(e){toast('Enter a valid http or https URL.')}
+});
+$('testApi').addEventListener('click',async()=>{
+  const base=$('apiBase').value.trim().replace(/\/$/,'');
+  if(!base){toast('Enter an API base URL first.');return}
+  const box=$('apiResult'),stateTag=$('apiState');
+  box.innerHTML='<strong>Testing connection…</strong><p>Requesting '+esc(base+'/health')+'</p>';
+  try{
+    const res=await fetch(base+'/health',{method:'GET',headers:{'Accept':'application/json'},signal:AbortSignal.timeout(6000)});
+    const body=await res.text();
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    stateTag.textContent='RESPONDING';stateTag.className='status-label';
+    box.innerHTML='<strong>Health endpoint responded</strong><p>HTTP '+res.status+'. Response: '+esc(body.slice(0,500))+'</p>';
+    toast('API health endpoint responded. Other endpoints are not yet synced by this prototype.');
+  }catch(err){
+    stateTag.textContent='NOT CONNECTED';stateTag.className='status-label review';
+    box.innerHTML='<strong>Connection could not be verified</strong><p>'+esc(err.message||String(err))+'. Check that the backend is running, the URL is correct and CORS permits this page. If opening the file directly, browser security rules may restrict requests.</p>';
+    toast('API test failed. Check server URL and CORS settings.');
+  }
+});
+
+function renderAll(){
+  renderStatusList();renderTrend();renderCandidates();renderActivity();
+  renderStationTable();renderGroundwaterMetrics();renderProjects();
+  $('metricRecharge').innerHTML=(state.stations.reduce((a,s)=>a+Number(s.recharge||0),0)).toFixed(2)+' <span style="font-size:12px;font-weight:500">demo units</span>';
+}
+
+/* ---------- Boot ---------- */
+loadLocal();
+renderAll();
+calculateMAR();
+renderFilterTrain();
+$('apiBase').value=state.apiBase;
+setupMap('map');
+window.addEventListener('resize',()=>Object.values(maps).forEach(m=>{try{m.resize()}catch(e){}}));
+})();
+</script>
+</body>
+</html>
